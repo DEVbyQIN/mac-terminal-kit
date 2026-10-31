@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: bash 语法检查
+        run: |
+          for f in install.sh uninstall.sh set-default.sh; do
+            bash -n "$f" && echo "OK $f"
+          done
+
+      - name: shellcheck
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          shellcheck -S warning install.sh uninstall.sh set-default.sh || true
+          shellcheck -S error  install.sh uninstall.sh set-default.sh
+
+      - name: python 语法检查
+        run: python3 -m py_compile tools/make_profile.py
+
+      - name: 校验 .terminal 描述文件结构
+        run: |
+          python3 - <<'PY'
+          import plistlib, sys
+
+          # 上游配色只保证配色键；本仓库生成的描述文件还必须带字体与回滚设置
+          base_required = {"BackgroundColor", "TextColor", "name", "type", "ProfileCurrentVersion"}
+          generated_required = base_required | {"Font", "ScrollbackLines", "useOptionAsMetaKey"}
+
+          cases = [
+              ("assets/tokyonight-storm.base.terminal", base_required),
+              ("assets/catppuccin-latte.base.terminal", base_required),
+              ("terminal/Qin-Dark.terminal", generated_required),
+          ]
+          bad = 0
+          for path, required in cases:
+              with open(path, "rb") as fh:
+                  d = plistlib.load(fh)
+              missing = required - set(d)
+              if d.get("type") != "Window Settings":
+                  print(f"FAIL {path}: type != Window Settings")
+                  bad = 1
+              elif missing:
+                  print(f"FAIL {path}: 缺少 {sorted(missing)}")
+                  bad = 1
+              else:
+                  print(f"OK   {path}  keys={len(d)}")
+          sys.exit(bad)
+          PY
+
+      - name: 生成器自检（合成一个临时描述文件）
+        run: |
+          python3 tools/make_profile.py \
+            --base assets/tokyonight-storm.base.terminal \
+            --name "CI Test" --font SFMono-Regular --size 13 \
+            --scrollback 50000 --out /tmp/ci.terminal
+          python3 - <<'PY'
+          import plistlib
+          d = plistlib.load(open('/tmp/ci.terminal','rb'))
+          assert d["name"] == "CI Test"
+          assert d["ScrollbackLines"] == 50000
+          assert d["useOptionAsMetaKey"] is True
+          font = plistlib.loads(d["Font"])
+          assert font["$objects"][2] == "SFMono-Regular", font["$objects"][2]
+          print("OK 生成器输出符合预期")
+          PY

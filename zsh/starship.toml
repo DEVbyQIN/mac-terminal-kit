@@ -1,0 +1,68 @@
+# mac-terminal-kit —— 克制版 Starship 提示符
+# 设计取舍：
+#   1. 不用任何 Nerd Font 图标（Terminal.app 不支持连字、也不保证有图标字体），只用普通字符
+#   2. 只保留「一眼有用」的信息：当前目录、git 分支/状态、超时提示
+#   3. 单行、无装饰线，配色交给终端描述文件（256 色安全）
+# 想改：直接编辑本文件，保存后新开窗口即生效（可用 `starship explain` 调试）
+
+add_newline = false
+
+format = "$directory$git_branch$git_status$cmd_duration$character"
+
+# 提示符字符：成功绿、失败红；不使用 ❯ 以外的图标
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+vimcmd_symbol = "[❮](bold green)"
+
+# 当前目录：最多显示 3 级，在仓库里就只显示仓库名
+[directory]
+style = "bold cyan"
+format = "[$path]($style) "
+truncation_length = 3
+truncate_to_repo = true
+
+# git 分支
+[git_branch]
+style = "bold magenta"
+format = "[$branch]($style) "
+symbol = ""
+
+# git 状态：只保留最常见的几种，符号用普通字符
+[git_status]
+style = "bold yellow"
+format = "[$all_status$ahead_behind]($style) "
+conflicted = "!"
+ahead = "↑"
+behind = "↓"
+diverged = "↑↓"
+untracked = "?"
+modified = "*"
+staged = "+"
+renamed = "»"
+deleted = "x"
+
+# 命令耗时：不显示显示 < 1 秒的
+[cmd_duration]
+min_time = 1000
+format = "[$duration]($style) "
+style = "bold yellow"
+
+# 关掉不常用的模块，避免乱跳
+[python]
+disabled = true
+
+[nodejs]
+disabled = true
+
+# 这些模块默认就有，但为了「克制」，全关
+[aws]
+disabled = true
+[gcloud]
+disabled = true
+[docker_context]
+disabled = true
+[kubernetes]
+disabled = true
+[terraform]
+disabled = true
