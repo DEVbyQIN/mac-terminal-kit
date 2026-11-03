@@ -41,14 +41,27 @@ fi
 # ---------------------------------------------------------------- 灰字补全 + 语法高亮
 # 注意：zsh-syntax-highlighting 必须最后加载，否则高亮会被后面的 widget 覆盖
 ZSH_KIT_SHARE="$HOME/.local/share/zsh"
+
+# --- 配色修正（源码里的默认值在深色背景上看不见）---
+# zsh-syntax-highlighting 默认把注释画成 fg=black,bold（白底主题没问题），
+# 在深色主题（如本包自带的 Qin-Dark）上就是黑字压黑底。下面在 source 之后覆盖成中灰。
+# 用 256 色索引而不是 #RRGGBB：Terminal.app 2.x 不支持 24-bit 真彩。
+# 选 244（中灰）是为了深色/浅色主题都能读；若只用浅色主题，改成 240 更清晰。
+# zsh-autosuggestions 默认 fg=8（ANSI bright black），在深色主题里同样偏暗。
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=244'
+
 if [ -r "$ZSH_KIT_SHARE/zsh-autosuggestions/zsh-autosuggestions.zsh" ]; then
   source "$ZSH_KIT_SHARE/zsh-autosuggestions/zsh-autosuggestions.zsh"
   # 补全来源：历史（默认行为，这里显式写出来方便改）
   ZSH_AUTOSUGGEST_STRATEGY=(history)
+  ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=244'
 fi
 if [ -r "$ZSH_KIT_SHARE/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]; then
   source "$ZSH_KIT_SHARE/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+  # 必须在 source 之后再设一次：插件加载时会重建默认样式表
+  ZSH_HIGHLIGHT_STYLES[comment]='fg=244'
 fi
+
 
 # ---------------------------------------------------------------- 顺手别名（只影响交互）
 alias ll='ls -lahG'
